@@ -40,11 +40,22 @@ Seeing as these projects did not fulfil our requirements, we decided to create g
 ## Backlog
 
 - [ ] Support updating PRs by merging instead of rebasing
-- [ ] Automatically reapprove PRs that were approved before updating the PR
 
 ## Installation and deployment
 
 github-merge-bot currently uses username and password or personal access token to authenticate with GitHub. A good way to integrate with GitHub is to create a "bot" user that github-merge-bot authenticates as. Then [create a personal access token](https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/) and specify that as the password for github-merge-bot.
+
+### Settings
+
+All github-merge-bot settings are configurable from the following environmental variables:
+
+Setting | Default | Description
+--- | --- | ---
+GITHUB_MERGE_BOT_OWNER | | The github organisation of the github repository github-merge-bot will integrate with
+GITHUB_MERGE_BOT_REPO | | The github repository github-merge-bot will integrate with
+GITHUB_MERGE_BOT_USERNAME | | The github user username github-merge-bot will integrate using
+GITHUB_MERGE_BOT_PASSWORD | | The github user password github-merge-bot will integrate using
+GITHUB_MERGE_BOT_TRUSTED_TEAMS_PERMISSION_SCOPE | nil | The github teams permission scope (ex. admin, write) whose members approvals will be considered when re-approving pull requests after a rebase operation. By default, any review approvals will be trusted.
 
 ### Docker
 

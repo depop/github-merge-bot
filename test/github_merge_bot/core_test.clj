@@ -5,42 +5,89 @@
   (:import (java.util UUID)
            (org.eclipse.jgit.api Git)))
 
+; NOTE enable for tracing purposes
+;(require '[clojure.tools.trace :as trace])
+;(trace/trace-ns 'github-merge-bot.core)
+
 (defn pull-request-for-repo-branch [^Git origin-repo branch-name]
   {:number 1
    :head {:sha (.getName (.getObjectId (.findRef (.getRepository origin-repo) branch-name)))
           :ref branch-name}})
 
 (deftest test-approved?
-  (with-redefs [github-reviews (constantly [])]
-    (is (not (approved? "foo" "bar" {:id 42}))))
+  (with-redefs [github-reviews (constantly [])
+                github-repo-teams (constantly [{:name "team1" :id 1 :permission "admin"}])
+                github-team-members (constantly [{:login "user1"}])]
+    (is (not (approved? "foo" "bar" {:id 42} nil))))
 
-  (with-redefs [github-reviews (constantly [{:state "APPROVED" :user {:id 1}}])]
-    (is (approved? "foo" "bar" {:id 42 })))
+  (with-redefs [github-reviews (constantly [{:state "APPROVED" :user {:login "user1"}}])
+                github-repo-teams (constantly [{:name "team1" :id 1 :permission "admin"}])
+                github-team-members (constantly [{:login "user1"}])]
+    (is (approved? "foo" "bar" {:id 42}  nil)))
 
-  (with-redefs [github-reviews (constantly [{:state "APPROVED" :user {:id 1}}
-                                            {:state "COMMENTED" :user {:id 1}}])]
-    (is (approved? "foo" "bar" {:id 42})))
+  (with-redefs [github-reviews (constantly [{:state "APPROVED" :user {:login "user1"}}])
+                github-repo-teams (constantly [{:name "team1" :id 1 :permission "admin"}])
+                github-team-members (constantly [{:login "user1"}])]
+    (is (approved? "foo" "bar" {:id 42}  "admin")))
 
-  (with-redefs [github-reviews (constantly [{:state "APPROVED" :user {:id 1}}
-                                            {:state "COMMENTED" :user {:id 2}}])]
-    (is (approved? "foo" "bar" {:id 42})))
+  (with-redefs [github-reviews (constantly [{:state "APPROVED" :user {:login "user2"}}])
+                github-repo-teams (constantly [{:name "team1" :id 1 :permission "write"}])
+                github-team-members (constantly [{:login "user1"}])]
+    (is (not (approved? "foo" "bar" {:id 42}  "write"))))
 
-  (with-redefs [github-reviews (constantly [{:state "APPROVED" :user {:id 1}}
-                                            {:state "CHANGES_REQUESTED" :user {:id 1}}])]
-    (is (not (approved? "foo" "bar" {:id 42}))))
+  (with-redefs [github-reviews (constantly [{:state "APPROVED" :user {:login "user1"}}])
+                github-repo-teams (constantly [{:name "team1" :id 1 :permission "write"}])
+                github-team-members (constantly [{:login "user1"}])]
+    (is (not (approved? "foo" "bar" {:id 42}  "admin"))))
 
-  (with-redefs [github-reviews (constantly [{:state "CHANGES_REQUESTED" :user {:id 1}}
-                                            {:state "APPROVED" :user {:id 1}}])]
-    (is (approved? "foo" "bar" {:id 42})))
+  (with-redefs [github-reviews (constantly [{:state "APPROVED" :user {:login "user2"}}])
+                github-repo-teams (constantly nil)
+                github-team-members (constantly nil)]
+    (is (approved? "foo" "bar" {:id 42} nil)))
 
-  (with-redefs [github-reviews (constantly [{:state "CHANGES_REQUESTED" :user {:id 1}}
-                                            {:state "APPROVED" :user {:id 2}}])]
-    (is (not (approved? "foo" "bar" {:id 42}))))
+  (with-redefs [github-reviews (constantly [{:state "APPROVED" :user {:login "user1"}}
+                                            {:state "COMMENTED" :user {:login "user1"}}])
+                github-repo-teams (constantly [{:name "team1" :id 1}])
+                github-team-members (constantly [{:login "user1"}])]
+    (is (approved? "foo" "bar" {:id 42} nil)))
 
-  (with-redefs [github-reviews (constantly [{:state "CHANGES_REQUESTED" :user {:id 1}}
-                                            {:state "APPROVED" :user {:id 2}}
-                                            {:state "APPROVED" :user {:id 1}}])]
-    (is (approved? "foo" "bar" {:id 42}))))
+  (with-redefs [github-reviews (constantly [{:state "APPROVED" :user {:login "user1"}}
+                                            {:state "COMMENTED" :user {:login "user2"}}])
+                github-repo-teams (constantly [{:name "team1" :id 1}])
+                github-team-members (constantly [{:login "user1"}])]
+    (is (approved? "foo" "bar" {:id 42} nil)))
+
+  (with-redefs [github-reviews (constantly [{:state "APPROVED" :user {:login "user1"}}
+                                            {:state "CHANGES_REQUESTED" :user {:login "user1"}}])
+                github-repo-teams (constantly [{:name "team1" :id 1}])
+                github-team-members (constantly [{:login "user1"}])]
+    (is (not (approved? "foo" "bar" {:id 42} nil))))
+
+  (with-redefs [github-reviews (constantly [{:state "CHANGES_REQUESTED" :user {:login "user1"}}
+                                            {:state "APPROVED" :user {:login "user1"}}])
+                github-repo-teams (constantly [{:name "team1" :id 1}])
+                github-team-members (constantly [{:login "user1"}])]
+    (is (approved? "foo" "bar" {:id 42} nil)))
+
+  (with-redefs [github-reviews (constantly [{:state "CHANGES_REQUESTED" :user {:login "user1"}}
+                                            {:state "APPROVED" :user {:login "user2"}}])
+                github-repo-teams (constantly [{:name "team1" :id 1 :permission "admin"}])
+                github-team-members (constantly [{:login "user1"}])]
+    (is (not (approved? "foo" "bar" {:id 42} "admin"))))
+
+  (with-redefs [github-reviews (constantly [{:state "CHANGES_REQUESTED" :user {:login "user1"}}
+                                            {:state "APPROVED" :user {:login "user2"}}
+                                            {:state "APPROVED" :user {:login "user1"}}])
+                github-repo-teams (constantly [{:name "team1" :id 1 :permission "admin"}])
+                github-team-members (constantly [{:login "user1"}])]
+    (is (approved? "foo" "bar" {:id 42} "admin")))
+
+  (with-redefs [github-reviews (constantly [{:state "CHANGES_REQUESTED" :user {:login "user1"}}
+                                            {:state "APPROVED" :user {:login "user2"}}
+                                            {:state "APPROVED" :user {:login "user1"}}])
+                github-repo-teams (constantly [{:name "team1" :id 1 :permission "write"}])
+                github-team-members (constantly [{:login "user1"}, {:login "user2"}])]
+    (is (not (approved? "foo" "bar" {:id 42} "admin")))))
 
 (deftest test-update-pull-request
   (let [origin-repo-dir (str (System/getProperty "java.io.tmpdir") (UUID/randomUUID))
@@ -51,8 +98,11 @@
         _ (git/git-commit origin-repo "C")
         _ (git/git-checkout origin-repo "master")
         repo (:repo (git/git-clone-full origin-repo-dir (str (System/getProperty "java.io.tmpdir") (UUID/randomUUID))))]
-    (with-redefs [procure-repo (constantly repo)]
-      (update-pull-request "foo" "bar" (pull-request-for-repo-branch origin-repo "feature-c") {:username "foo" :password "abc"})
+    (with-redefs [procure-repo (constantly repo)
+                  github-reviews (constantly [])
+                  github-repo-teams (constantly [{:name "team1" :id 1}])
+                  github-team-members (constantly [{:login "user1"}])]
+      (update-pull-request "foo" "bar" (pull-request-for-repo-branch origin-repo "feature-c") {:username "foo" :password "abc"} nil)
       (is (head-up-to-date-with-base? "foo" "bar" (pull-request-for-repo-branch origin-repo "feature-c"))))))
 
 (deftest test-update-pull-request-with-conflict
@@ -69,10 +119,13 @@
         rev-c (git/git-add-and-commit origin-repo "C")
         _ (git/git-checkout origin-repo "master")
         repo (:repo (git/git-clone-full origin-repo-dir (str (System/getProperty "java.io.tmpdir") (UUID/randomUUID))))]
-    (with-redefs [procure-repo (constantly repo)]
-      (update-pull-request "foo" "bar" (pull-request-for-repo-branch origin-repo "feature-c") {:username "foo" :password "abc"})
+    (with-redefs [procure-repo (constantly repo)
+                  github-reviews (constantly [])
+                  github-repo-teams (constantly [{:name "team1" :id 1}])
+                  github-team-members (constantly [{:login "user1"}])]
+      (update-pull-request "foo" "bar" (pull-request-for-repo-branch origin-repo "feature-c") {:username "foo" :password "abc"} nil)
       (is (= (-> origin-repo .getRepository (.findRef "feature-c") .getObjectId .getName)
              (.getName rev-c))
           "There was a conflict, so the remote feature-c branch should not have been modified")
-      (is (nil? (update-pull-request "foo" "bar" (pull-request-for-repo-branch origin-repo "feature-c") {:username "foo" :password "abc"}))
+      (is (nil? (update-pull-request "foo" "bar" (pull-request-for-repo-branch origin-repo "feature-c") {:username "foo" :password "abc"} nil))
           "After the conflict the repo should return to a clean state and calling update-pull-request again should work"))))
