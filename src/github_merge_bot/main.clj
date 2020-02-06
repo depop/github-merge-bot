@@ -1,6 +1,7 @@
 (ns github-merge-bot.main
-    (:require [github-merge-bot.core :refer :all])
-    (:import (java.util Timer TimerTask)))
+    (:use [github-merge-bot.core])
+    (:import (java.util Timer TimerTask))
+    (:gen-class))
 
 (require '[clojure.tools.trace :as trace])
 
