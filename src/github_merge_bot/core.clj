@@ -4,8 +4,7 @@
             [clj-jgit.porcelain :as git]
             [clojure.core.match :refer [match]]
             [clojure.string :as string])
-  (:import (java.util Timer TimerTask)
-           (org.eclipse.jgit.transport UsernamePasswordCredentialsProvider RefSpec)
+  (:import (org.eclipse.jgit.transport UsernamePasswordCredentialsProvider RefSpec)
            (org.eclipse.jgit.revwalk RevWalk)
            (org.eclipse.jgit.revwalk.filter RevFilter)
            (org.eclipse.jgit.lib ObjectId)
@@ -142,10 +141,3 @@
             (match [function]
               [nil] (merge-pull-requests owner repo credentials trusted-teams-permission-scope)
               [function] (apply function args))))))
-
-(defn -main
-  [& args]
-  (let [timer-task (proxy [TimerTask] []
-                     (run []
-                       (run-in-env nil)))]
-    (.schedule (Timer.) timer-task 0 30000)))

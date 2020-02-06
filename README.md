@@ -56,6 +56,7 @@ GITHUB_MERGE_BOT_REPO | | The github repository github-merge-bot will integrate 
 GITHUB_MERGE_BOT_USERNAME | | The github user username github-merge-bot will integrate using
 GITHUB_MERGE_BOT_PASSWORD | | The github user password github-merge-bot will integrate using
 GITHUB_MERGE_BOT_TRUSTED_TEAMS_PERMISSION_SCOPE | nil | The github teams permission scope (ex. admin, write) whose members approvals will be considered when re-approving pull requests after a rebase operation. By default, any review approvals will be trusted.
+GITHUB_MERGE_BOT_TRACE_ENABLED | nil | When set to "true", enables `github-merge-bot.core` namespace stdout tracing using [clojure.tools.trace](https://github.com/clojure/tools.trace)
 
 ### Docker
 
