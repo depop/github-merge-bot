@@ -10,6 +10,6 @@
                  [org.clojure/core.match "0.3.0"]
                  [clj-jgit "0.8.10"]]
   :lein-tools-deps/config {:config-files [:install :user :project]}
-  :main ^:skip-aot github-merge-bot.core
+  :main ^:skip-aot github-merge-bot.main
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})
